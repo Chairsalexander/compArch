@@ -166,56 +166,81 @@ public:
     // Constructor
     CacheSimulator(size_t cache_size, size_t block_size, const std::string& associativity, size_t prefetch_size)
         : cache_size(cache_size), block_size(block_size), associativity(associativity), prefetch_size(prefetch_size) {
-        num_blocks = cache_size / block_size;
+        num_blocks = cache_size / block_size;   //Calc number of blocks
 
         //Check the associativuy of the set, Direct, assoc, assoc# with # being a multiple of 2
-        if (associativity == "direct") {
+        if (associativity == "direct") 
+        {
             num_ways = 1;
             num_sets = num_blocks;
-        } else if (associativity == "assoc") {
+        } else if (associativity == "assoc") 
+        {
             num_ways = num_blocks;
             num_sets = 1;
-        } else if (associativity.rfind("assoc:", 0) == 0) {
+        } else if (associativity.rfind("assoc:", 0) == 0) 
+        {
             num_ways = std::stoi(associativity.substr(6));
-            if ((num_blocks % num_ways) != 0) throw std::invalid_argument("Invalid associativity.");
+            if ((num_blocks % num_ways) != 0) 
+            {
+                throw std::invalid_argument("Invalid associativity.");
+            }
             num_sets = num_blocks / num_ways;
-        } else {
+        } else 
+        {
             throw std::invalid_argument("Invalid associativity format.");
         }
 
+        //Initalize the cache as an unordered map with number of sets being the size
         cache = std::unordered_map<int, std::deque<int>>(num_sets);
     }
 
     // Simulate cache operation
     void simulate(const std::string& trace_file) {
-        std::ifstream file(trace_file);
+        std::ifstream file(trace_file);     //Open trace file
         if (!file.is_open()) {
             std::cerr << "Error: Trace file '" << trace_file << "' does not exist." << std::endl;
             return;
         }
 
         std::string line;
+        //Loop to look at each lien of trace file until eof pops up
         while (std::getline(file, line)) {
-            if (line == "#eof") break;
+            if (line == "#eof")     //Looking for end of trace
+            {
+                break;
+            }
 
-            std::istringstream iss(line);
-            char operation;
-            std::string address_str;
+            std::istringstream iss(line);   //Parse the line
+            char operation;                 //R or W
+            std::string address_str;        //Strign to take thr address value in
 
-            if (!(iss >> operation >> address_str)) continue; // Skip malformed lines
+            //Skip lines whihc dont contain the expected format
+            if (!(iss >> operation >> address_str))
+            {
+                continue; // Skip malformed lines
+            }
 
             try {
+                //Convert hexadecimal to numeric value
                 size_t address = std::stoull(address_str, nullptr, 16);
-                size_t block_address = address / block_size;
+                size_t block_address = address / block_size;        //Block address calulations
                 access_block(block_address);
 
-                if (prefetch_size > 0 && operation == 'R') prefetch_blocks(block_address);
-            } catch (const std::exception&) {
+                //If prefetching is enable and R is read then prefetch blocks
+                if (prefetch_size > 0 && operation == 'R') 
+                {
+                    prefetch_blocks(block_address);
+                }
+            } 
+            catch (const std::exception&) 
+            {
+                //Second check for invalid address formats
                 std::cerr << "Skipping malformed line: " << line << std::endl;
                 continue; // Skip malformed address
             }
         }
 
+        //Calculations of hit rate and miss then total access
         size_t total_accesses = hits + misses;
         double hit_rate = 0.0;
         if(total_accesses > 0)
@@ -223,6 +248,7 @@ public:
              hit_rate = (static_cast<double>(hits) / total_accesses) * 100;
         }
 
+        //Output of the simulation results to the terminal window
         std::cout << "Cache Hits: " << hits << std::endl;
         std::cout << "Cache Misses: " << misses << std::endl;
         std::cout << "Hit Rate: " << std::fixed << std::setprecision(2) << hit_rate << "%" << std::endl;
@@ -230,27 +256,35 @@ public:
 };
 
 int main(int argc, char* argv[]) {
+    //Ensure the correct amount of arguments provided
     if (argc != 6) {
-        std::cerr << "To run it ./cacheSimulator <cache size> <block size> <associativity> <prefetch size> <trace file>" << std::endl;
+        std::cerr << "Format: ./cacheSimulator <cache size> <block size> <associativity> <prefetch size> <trace file>" << std::endl;
         return 1;
     }
 
-    generate_trace_file(10000, "memory_trace.txt");
+    //Generate a trace file
+    int numAmount = 10000;
+    generate_trace_file(numAmount, "memory_trace.txt");
 
     try {
-        size_t cache_size = std::stoul(argv[1]);
-        size_t block_size = std::stoul(argv[2]);
-        std::string associativity = argv[3];
-        size_t prefetch_size = std::stoul(argv[4]);
-        std::string trace_file = argv[5];
+        size_t cache_size = std::stoul(argv[1]);        //Cache Size
+        size_t block_size = std::stoul(argv[2]);        //Block Size
+        std::string associativity = argv[3];            //Associativity
+        size_t prefetch_size = std::stoul(argv[4]);     //Number of blocks
+        std::string trace_file = argv[5];               //Trace file name
 
+        //Error message which validates the cache sie and block size being powers of 2
         if ((cache_size & (cache_size - 1)) != 0 || (block_size & (block_size - 1)) != 0) {
             throw std::invalid_argument("Cache size and block size must be powers of 2.");
         }
 
+        //Run the cache simulator with the value from commmand line
         CacheSimulator simulator(cache_size, block_size, associativity, prefetch_size);
         simulator.simulate(trace_file);
-    } catch (const std::exception& e) {
+    } 
+    catch (const std::exception& e) 
+    {
+        //Catchiung error messages with parsing command lines
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
