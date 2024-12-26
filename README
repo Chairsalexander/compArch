@@ -1,0 +1,14 @@
+example Run
+Make
+./cacheSimulator 1024 64 assoc:4 2 memory_trace.txt
+
+Example output:
+Trace file 'memory_trace.txt' generated with 10000 accesses.
+Cache Hits: 2407
+Cache Misses: 7593
+Hit Rate: 24.07%
+
+All with code in this github and memory_trace.txt
+
+Terminal run example format:
+./cacheSimulator <cache size> <block size> <associativity> <prefetch size> <trace file> 
